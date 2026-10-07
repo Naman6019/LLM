@@ -1,0 +1,13 @@
+# --- Core: file-system tools (Part A) ---
+pypdf>=4.0,<7          # PDF text extraction
+python-docx>=1.1,<2    # DOCX text extraction (paragraphs + tables)
+
+# --- LLM integration (Part B) ---
+anthropic>=0.40        # Anthropic Claude provider
+openai>=1.50,<3        # OpenAI provider (optional at runtime: only imported if selected)
+python-dotenv>=1.0     # load API keys from .env
+rich>=13.7             # tool-call trace + markdown rendering in the terminal
+
+# --- Sample data generation & tests ---
+reportlab>=4.0         # builds the dummy PDF resumes (generate_resumes.py)
+pytest>=8.0            # test suite

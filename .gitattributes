@@ -1,0 +1,6 @@
+# Let git normalise line endings for source/text files...
+* text=auto
+
+# ...but never touch documents: CRLF conversion would corrupt PDF byte offsets and DOCX zips.
+*.pdf  binary
+*.docx binary

@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.pytest_tmp/
+.env
+
+# Generated output is local; keep the folder itself.
+output/*
+!output/.gitkeep
