@@ -1,5 +1,7 @@
 # LLM-Powered File System Assistant
 
+[![tests](https://github.com/Naman6019/LLM-Powered-File-System/actions/workflows/tests.yml/badge.svg)](https://github.com/Naman6019/LLM-Powered-File-System/actions/workflows/tests.yml)
+
 Sandboxed file-system tools (`read_file`, `list_files`, `write_file`, `search_in_file`) that an LLM
 can call to work with resume files (PDF / DOCX / TXT). Ask in plain English:
 
