@@ -1,0 +1,13 @@
+# Keeps the versions of the actions used in .github/workflows/ up to date.
+# Dependabot opens a pull request when a newer release exists; CI runs on it as usual.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "ci"          # matches this repo's conventional-commit style
+    groups:
+      actions:              # one PR for all action bumps instead of one per action
+        patterns: ["*"]
