@@ -82,7 +82,7 @@ write_file("output/notes.txt", "hello")
 | OpenAI | `openai` | `OPENAI_API_KEY` | `gpt-4o-mini` | `OPENAI_BASE_URL` lets you point at Azure/proxies/any OpenAI-compatible server. |
 | Google Gemini | `gemini` | `GEMINI_API_KEY` (or `GOOGLE_API_KEY`) | `gemini-3.8-flash` | Via Google's OpenAI-compatible endpoint. Get a key at [AI Studio](https://aistudio.google.com/apikey). |
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` | One key, hundreds of models. Set `OPENROUTER_MODEL` to any `vendor/model` slug from the [model list](https://openrouter.ai/models). |
-| Ollama | `ollama` | none (local) | `qwen3:8b` | Runs models on your machine. `OLLAMA_API_KEY` is only for Ollama cloud. |
+| Ollama | `ollama` | none (local); `OLLAMA_API_KEY` for Ollama cloud | `qwen3:8b` | Local: runs models on your machine. With `OLLAMA_API_KEY` set it uses Ollama's hosted API (`https://ollama.com/v1`) instead; choose a hosted model such as `gpt-oss:120b` via `OLLAMA_MODEL`. |
 
 Each provider has a `<NAME>_MODEL` variable (and Gemini/OpenRouter/Ollama/OpenAI a `<NAME>_BASE_URL`);
 `--model` overrides them per run. **Selection order:** `--provider` flag, then `LLM_PROVIDER`, then
@@ -112,7 +112,9 @@ Things that matter for local models:
 
 * **Pick a model that supports tool calling.** Models without support are rejected by Ollama with a 400 (`... does not support tools`), and some models answer with a tool call written out as JSON text, so nothing runs; the CLI detects both and prints a hint. Small models are also much less reliable at multi-step tool use (wrong arguments, wrong conclusions).
 * **Context length.** Ollama's OpenAI-compatible API cannot set the context size, and default windows can be small. Reading all 8 resumes in one conversation needs several thousand tokens; if answers look truncated or the model "forgets" files, build a variant with a bigger window (`PARAMETER num_ctx 16384` in a Modelfile, then `ollama create`) and pass that name via `--model`.
-* `OLLAMA_BASE_URL` defaults to `http://localhost:11434/v1`; a bare host such as `http://gpu-box:11434` gets `/v1` appended automatically.
+* `OLLAMA_BASE_URL` defaults to `http://localhost:11434/v1`, or to `https://ollama.com/v1` when `OLLAMA_API_KEY` is set; a bare host such as `http://gpu-box:11434` gets `/v1` appended automatically.
+* **A model listed by `ollama list` is not necessarily runnable.** If its weight files were removed, the listing still shows it but requests return `404 model not found`; `ollama pull <model>` again.
+* **Hosted models (Ollama cloud):** set `OLLAMA_API_KEY` and `OLLAMA_MODEL=gpt-oss:120b` (or any hosted tool-capable model). Your prompts and file contents are sent to Ollama's servers, unlike local models. Hosted APIs can return transient 5xx errors; just re-send the request.
 
 ### OpenRouter notes
 

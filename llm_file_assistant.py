@@ -57,6 +57,7 @@ class ProviderSpec:
     default_model: str
     base_url_env: str | None = None
     default_base_url: str | None = None       # None -> the SDK's own default endpoint
+    keyed_base_url: str | None = None         # endpoint to use when a key IS set and no base URL is (Ollama cloud)
     key_required: bool = True
     placeholder_key: str = ""                 # sent when no key is needed (the SDK insists on a value)
     strip_additional_properties: bool = False # drop 'additionalProperties' from tool schemas (see below)
@@ -92,8 +93,10 @@ PROVIDERS: dict[str, ProviderSpec] = {
         ProviderSpec(
             "ollama", "openai_compat", ("OLLAMA_API_KEY",), "OLLAMA_MODEL", "qwen3:8b",
             base_url_env="OLLAMA_BASE_URL", default_base_url="http://localhost:11434/v1",
+            # An OLLAMA_API_KEY only makes sense for Ollama's hosted API, so a key alone selects it.
+            keyed_base_url="https://ollama.com/v1",
             key_required=False, placeholder_key="ollama",
-            description="Ollama (local models, no API key; OLLAMA_API_KEY only for Ollama cloud)",
+            description="Ollama (local models need no key; OLLAMA_API_KEY switches to Ollama cloud)",
         ),
     )
 }
@@ -402,7 +405,9 @@ def create_provider(name: str | None = None, model: str | None = None) -> Provid
 
     import openai
 
-    base_url = _normalise_base_url(spec, (_env(spec.base_url_env) if spec.base_url_env else None) or spec.default_base_url)
+    explicit_url = _env(spec.base_url_env) if spec.base_url_env else None
+    fallback_url = spec.keyed_base_url if (api_key and spec.keyed_base_url) else spec.default_base_url
+    base_url = _normalise_base_url(spec, explicit_url or fallback_url)
     client = openai.OpenAI(api_key=api_key or spec.placeholder_key, base_url=base_url)
     return OpenAIProvider(
         model=chosen_model,

@@ -400,6 +400,18 @@ class TestProviderRegistry:
         monkeypatch.setenv("OLLAMA_API_KEY", "cloud-key")
         assert lfa.create_provider("ollama").client.api_key == "cloud-key"
 
+    def test_ollama_key_alone_selects_the_cloud_endpoint(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_API_KEY", "cloud-key")
+        assert str(lfa.create_provider("ollama").client.base_url).rstrip("/") == "https://ollama.com/v1"
+
+    def test_explicit_ollama_base_url_beats_the_cloud_default(self, monkeypatch):
+        monkeypatch.setenv("OLLAMA_API_KEY", "cloud-key")
+        monkeypatch.setenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+        assert str(lfa.create_provider("ollama").client.base_url).rstrip("/") == "http://localhost:11434/v1"
+
+    def test_ollama_without_key_stays_local(self):
+        assert "localhost:11434" in str(lfa.create_provider("ollama").client.base_url)
+
     def test_ollama_autodetected_only_when_configured(self, monkeypatch):
         with pytest.raises(lfa.ConfigError):
             lfa.resolve_provider_name()                    # nothing set -> not silently chosen
