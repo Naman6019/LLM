@@ -1,5 +1,10 @@
 # Demo video script (target 2:30)
 
+> **Two ways to make the video.** This file is the plan for a live **screen recording**. A polished,
+> animated version that replays a real captured run (you add the voiceover) is in
+> [`demo-video/`](demo-video/README.md), with narration drafts in
+> [`demo-video/VOICEOVER.md`](demo-video/VOICEOVER.md).
+
 Record the terminal (Windows Terminal, large font). Run from the project folder with the venv active
 and an API key in `.env`.
 

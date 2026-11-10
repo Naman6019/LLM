@@ -1,0 +1,638 @@
+{
+  "meta": {
+    "provider": "ollama",
+    "model": "kimi-k2.6",
+    "endpoint": "Ollama cloud",
+    "captured_at": "2026-11-10T18:31:52+00:00",
+    "repo": "github.com/Naman6019/LLM"
+  },
+  "resumes": [
+    {
+      "name": "resume_alex_chen.txt",
+      "size_bytes": 1347,
+      "extension": ".txt"
+    },
+    {
+      "name": "resume_david_okafor.docx",
+      "size_bytes": 37575,
+      "extension": ".docx"
+    },
+    {
+      "name": "resume_emily_watson.docx",
+      "size_bytes": 37606,
+      "extension": ".docx"
+    },
+    {
+      "name": "resume_john_doe.pdf",
+      "size_bytes": 3143,
+      "extension": ".pdf"
+    },
+    {
+      "name": "resume_maria_garcia.pdf",
+      "size_bytes": 2996,
+      "extension": ".pdf"
+    },
+    {
+      "name": "resume_priya_sharma.docx",
+      "size_bytes": 37646,
+      "extension": ".docx"
+    },
+    {
+      "name": "resume_rahul_mehta.pdf",
+      "size_bytes": 2920,
+      "extension": ".pdf"
+    },
+    {
+      "name": "resume_sara_lindqvist.txt",
+      "size_bytes": 1437,
+      "extension": ".txt"
+    }
+  ],
+  "providers": [
+    {
+      "name": "anthropic",
+      "description": "Anthropic Claude (native Messages API)",
+      "key": "ANTHROPIC_API_KEY",
+      "model_env": "ANTHROPIC_MODEL",
+      "default_model": "claude-opus-5-5",
+      "ready": false
+    },
+    {
+      "name": "openai",
+      "description": "OpenAI",
+      "key": "OPENAI_API_KEY",
+      "model_env": "OPENAI_MODEL",
+      "default_model": "gpt-4o-mini",
+      "ready": false
+    },
+    {
+      "name": "gemini",
+      "description": "Google Gemini (OpenAI-compatible endpoint)",
+      "key": "GEMINI_API_KEY or GOOGLE_API_KEY",
+      "model_env": "GEMINI_MODEL",
+      "default_model": "gemini-3.8-flash",
+      "ready": false
+    },
+    {
+      "name": "openrouter",
+      "description": "OpenRouter (hundreds of models behind one key; use 'vendor/model' names)",
+      "key": "OPENROUTER_API_KEY",
+      "model_env": "OPENROUTER_MODEL",
+      "default_model": "openai/gpt-4o-mini",
+      "ready": false
+    },
+    {
+      "name": "ollama",
+      "description": "Ollama (local models need no key; OLLAMA_API_KEY switches to Ollama cloud)",
+      "key": "(none needed)",
+      "model_env": "OLLAMA_MODEL",
+      "default_model": "qwen3:8b",
+      "ready": true
+    }
+  ],
+  "pytest": {
+    "command": "pytest",
+    "lines": [
+      "........................................................................ [ 48%]",
+      "...............s........................................................ [ 97%]",
+      "....                                                                     [100%]",
+      "147 passed, 1 skipped in 5.69s"
+    ],
+    "summary": "147 passed, 1 skipped in 5.69s",
+    "returncode": 0
+  },
+  "code": {
+    "tools": {
+      "read_file": "@safe_tool\ndef read_file(filepath: str, max_chars: int = DEFAULT_MAX_CHARS) -> dict[str, Any]:\n    \"\"\"Read a resume (PDF, DOCX or TXT) and return its text plus metadata.\n\n    Args:\n        filepath: Path inside the sandbox root (relative or absolute).\n        max_chars: Cap on returned characters. Longer documents are truncated and\n            ``metadata.truncated`` is set. Must be >= 1.\n\n    Returns:\n        ``{\"success\": True, \"filepath\": str, \"content\": str, \"metadata\": {...}}`` where\n        metadata has ``filename, extension, format, size_bytes, modified, char_count,\n        word_count, truncated`` (+ ``page_count`` for PDFs, ``table_count`` for DOCX,\n        ``encoding`` for TXT); or ``{\"success\": False, \"error\": {...}}``.\n    \"\"\"",
+      "list_files": "def list_files(directory: str = \".\", extension: str | None = None) -> list[dict[str, Any]]:\n    \"\"\"List the files directly inside ``directory`` (non-recursive).\n\n    Args:\n        directory: Directory inside the sandbox root.\n        extension: Optional filter such as ``\".pdf\"`` or ``\"pdf\"`` (case-insensitive).\n\n    Returns:\n        A list of ``{\"name\", \"path\", \"size_bytes\", \"modified\", \"extension\"}`` dicts,\n        sorted by name. Hidden files (dotfiles) and sub-directories are skipped.\n\n    Raises:\n        FsToolError: if the directory is missing, not a directory, or outside the sandbox.\n            (This function returns a list per the assignment's signature, so errors are\n            signalled by exception; ``execute_tool`` converts them for the LLM.)\n    \"\"\"",
+      "write_file": "@safe_tool\ndef write_file(filepath: str, content: str, overwrite: bool = False) -> dict[str, Any]:\n    \"\"\"Write ``content`` to a plain-text file, creating parent directories as needed.\n\n    Args:\n        filepath: Destination inside the sandbox root. Extension must be one of\n            ``.txt .md .json .csv .log`` (PDF/DOCX output is deliberately unsupported).\n        content: Text to write (UTF-8, ``\\\\n`` newlines). At most 1 MB.\n        overwrite: Replace an existing file. Defaults to ``False`` so an LLM cannot\n            clobber data by accident; the error tells the caller how to proceed.\n\n    Returns:\n        ``{\"success\": True, \"filepath\", \"bytes_written\", \"created_directories\",\n        \"overwritten\"}`` or ``{\"success\": False, \"error\": {...}}``.\n    \"\"\"",
+      "search_in_file": "@safe_tool\ndef search_in_file(\n    filepath: str,\n    keyword: str,\n    context_chars: int = DEFAULT_CONTEXT_CHARS,\n    max_matches: int = DEFAULT_MAX_MATCHES,\n    whole_word: bool = False,\n) -> dict[str, Any]:\n    \"\"\"Case-insensitive keyword search with surrounding context.\n\n    Searches the *full* extracted text (not the truncated ``read_file`` view).\n\n    Args:\n        filepath: PDF / DOCX / TXT inside the sandbox root.\n        keyword: Literal text to find (not a regex). Matching ignores case.\n        context_chars: Characters of context to include on each side of a hit.\n        max_matches: Maximum matches returned; ``total_matches`` always has the true count.\n        whole_word: Only match the keyword as a whole word (``\"Java\"`` won't match\n            ``\"JavaScript\"``).\n\n    Returns:\n        ``{\"success\": True, \"filepath\", \"keyword\", \"total_matches\", \"returned_matches\",\n        \"truncated\", \"matches\": [{\"line\", \"offset\", \"match\", \"context\"}]}``.\n        Zero matches is a *successful* result with ``total_matches == 0``.\n    \"\"\""
+    },
+    "resolve": "def _resolve(path: str) -> Path:\n    \"\"\"Resolve ``path`` inside the sandbox root or raise PathOutsideSandboxError.\"\"\"\n    if not isinstance(path, str) or not path.strip():\n        raise InvalidArgumentError(\"Path must be a non-empty string.\")\n    root = get_root()\n    raw = Path(path.strip()).expanduser()\n    candidate = (raw if raw.is_absolute() else root / raw).resolve()  # collapses '..', follows symlinks\n    try:\n        candidate.relative_to(root)\n    except ValueError:\n        raise PathOutsideSandboxError(\n            f\"Access denied: '{path}' is outside the allowed directory. \"\n            \"Use a path relative to the project root, e.g. 'resumes/resume_john_doe.pdf'.\"\n        ) from None\n    return candidate",
+    "schema": "{\n  \"name\": \"search_in_file\",\n  \"description\": \"Search ONE file (PDF, DOCX or TXT) for a keyword, case-insensitively, and return each match with its line number and surrounding context. total_matches == 0 means the keyword is absent. To search many resumes, call this once per file (calls can be made in parallel).\",\n  \"parameters\": {\n    \"type\": \"object\",\n    \"properties\": {\n      \"filepath\": {\n        \"type\": \"string\",\n        \"description\": \"Path relative to the project root.\"\n      },\n      \"keyword\": {\n        \"type\": \"string\",\n        \"description\": \"Literal text to find (not a regex), e.g. 'Python'.\"\n      },\n      \"context_chars\": {\n        \"type\": \"integer\",\n        \"minimum\": 0,\n        \"description\": \"Characters of context on each side of a match (default 80).\"\n      },\n      \"max_matches\": {\n        \"type\": \"integer\",\n        \"minimum\": 1,\n        \"description\": \"Maximum matches to return (default 20); total_matches still reports the true count.\"\n      },\n      \"whole_word\": {\n        \"type\": \"boolean\",\n        \"description\": \"Match whole words only, so 'Java' does not match 'JavaScript' (default false).\"\n      }\n    },\n    \"required\": [\n      \"filepath\",\n      \"keyword\"\n    ],\n    \"additionalProperties\": false\n  }\n}",
+    "loc": {
+      "fs_tools.py": 502,
+      "tool_schemas.py": 235,
+      "llm_file_assistant.py": 748
+    }
+  },
+  "takes": [
+    {
+      "id": "read-all",
+      "label": "Read all resumes",
+      "query": "Read all resumes in the resumes folder",
+      "events": [
+        {
+          "type": "tool_call",
+          "t": 1.96,
+          "name": "list_files",
+          "args": {
+            "directory": "resumes"
+          },
+          "args_text": "directory='resumes'"
+        },
+        {
+          "type": "tool_result",
+          "t": 1.96,
+          "name": "list_files",
+          "ok": true,
+          "summary": "8 file(s): resume_alex_chen.txt, resume_david_okafor.docx, resume_emily_watson.docx, resume_john_doe.pdf, resume_maria_garcia.pdf, resume_priya_sharma.docx, +2 more",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.27,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_alex_chen.txt"
+          },
+          "args_text": "filepath='resumes/resume_alex_chen.txt'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.27,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_alex_chen.txt - 172 words (txt)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.27,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_david_okafor.docx"
+          },
+          "args_text": "filepath='resumes/resume_david_okafor.docx'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.37,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_david_okafor.docx - 161 words (docx)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.37,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_emily_watson.docx"
+          },
+          "args_text": "filepath='resumes/resume_emily_watson.docx'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.38,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_emily_watson.docx - 167 words (docx)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.38,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_john_doe.pdf"
+          },
+          "args_text": "filepath='resumes/resume_john_doe.pdf'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.53,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_john_doe.pdf - 203 words (pdf)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.53,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_maria_garcia.pdf"
+          },
+          "args_text": "filepath='resumes/resume_maria_garcia.pdf'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.54,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_maria_garcia.pdf - 176 words (pdf)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.54,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_priya_sharma.docx"
+          },
+          "args_text": "filepath='resumes/resume_priya_sharma.docx'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.54,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_priya_sharma.docx - 174 words (docx)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.54,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_rahul_mehta.pdf"
+          },
+          "args_text": "filepath='resumes/resume_rahul_mehta.pdf'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.55,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_rahul_mehta.pdf - 168 words (pdf)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.55,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_sara_lindqvist.txt"
+          },
+          "args_text": "filepath='resumes/resume_sara_lindqvist.txt'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.55,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_sara_lindqvist.txt - 177 words (txt)",
+          "error_type": null
+        }
+      ],
+      "answer": "I found **8 resumes** in the `resumes/` folder. Here is a quick overview of each candidate:\n\n| Candidate | Role | Key Background | Location |\n|---|---|---|---|\n| **Alex Chen** | Frontend Engineer (5 yrs) | React, TypeScript, Next.js, Vue.js; basic Python | Vancouver, BC |\n| **David Okafor** | Java Backend Developer (9 yrs) | Java, Kotlin, Spring Boot, Kafka, Oracle/PostgreSQL | Chicago, IL |\n| **Emily Watson** | Senior Product Manager (8 yrs) | B2B SaaS analytics, SQL, Looker; introductory Python course | New York, NY |\n| **John Doe** | Senior Backend Engineer (8 yrs) | Python, FastAPI, Django, Celery, AWS | Austin, TX |\n| **Maria Garcia** | Site Reliability Engineer (7 yrs) | Kubernetes, Terraform, Python, Go, AWS/GCP | Denver, CO |\n| **Priya Sharma** | Data Scientist (6 yrs) | Python, scikit-learn, PyTorch, XGBoost, Airflow, Snowflake | Seattle, WA |\n| **Rahul Mehta** | Junior Software Developer (new grad) | Python, Flask, Java; CMU B.S. CS 2025 | Pittsburgh, PA |\n| **Sara Lindqvist** | ML Engineer – NLP (4 yrs) | Python, PyTorch, Hugging Face Transformers, FAISS, FastAPI | Boston, MA |\n\nIf you'd like me to **search for a specific skill**, **compare candidates**, or **write a summary/report** to a file, just let me know!",
+      "iterations": 3,
+      "elapsed_seconds": 13.9,
+      "attempt": 1,
+      "accepted": true
+    },
+    {
+      "id": "find-python",
+      "label": "Find Python experience",
+      "query": "Find resumes mentioning Python experience",
+      "events": [
+        {
+          "type": "tool_call",
+          "t": 1.18,
+          "name": "list_files",
+          "args": {
+            "directory": "resumes"
+          },
+          "args_text": "directory='resumes'"
+        },
+        {
+          "type": "tool_result",
+          "t": 1.18,
+          "name": "list_files",
+          "ok": true,
+          "summary": "8 file(s): resume_alex_chen.txt, resume_david_okafor.docx, resume_emily_watson.docx, resume_john_doe.pdf, resume_maria_garcia.pdf, resume_priya_sharma.docx, +2 more",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.02,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_alex_chen.txt",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_alex_chen.txt', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.02,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "2 matches for 'Python' in resumes/resume_alex_chen.txt",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.02,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_david_okafor.docx",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_david_okafor.docx', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.03,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "0 matches for 'Python' in resumes/resume_david_okafor.docx",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.03,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_emily_watson.docx",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_emily_watson.docx', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.03,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "1 match for 'Python' in resumes/resume_emily_watson.docx",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.03,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_john_doe.pdf",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_john_doe.pdf', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.04,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "5 matches for 'Python' in resumes/resume_john_doe.pdf",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.04,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_maria_garcia.pdf",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_maria_garcia.pdf', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.05,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "3 matches for 'Python' in resumes/resume_maria_garcia.pdf",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.05,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_priya_sharma.docx",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_priya_sharma.docx', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.05,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "4 matches for 'Python' in resumes/resume_priya_sharma.docx",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.05,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_rahul_mehta.pdf",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_rahul_mehta.pdf', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.06,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "7 matches for 'Python' in resumes/resume_rahul_mehta.pdf",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 6.06,
+          "name": "search_in_file",
+          "args": {
+            "filepath": "resumes/resume_sara_lindqvist.txt",
+            "keyword": "Python"
+          },
+          "args_text": "filepath='resumes/resume_sara_lindqvist.txt', keyword='Python'"
+        },
+        {
+          "type": "tool_result",
+          "t": 6.06,
+          "name": "search_in_file",
+          "ok": true,
+          "summary": "5 matches for 'Python' in resumes/resume_sara_lindqvist.txt",
+          "error_type": null
+        }
+      ],
+      "answer": "Resumes mentioning **Python** experience:\n\n1. **resume_alex_chen.txt** — 2 matches  \n   - Mentions \"basic Python scripts to automate asset pipelines\" in a junior role, and lists \"basic Python\" under skills. This appears to be at a beginner/basic level.\n\n2. **resume_john_doe.pdf** — 5 matches  \n   - Strong professional Python experience. Describes 8 years building services with Python (FastAPI, SQLAlchemy, Flask, Django), plus data migration scripts and tooling.\n\n3. **resume_maria_garcia.pdf** — 3 matches  \n   - Uses Python and Go for infrastructure tooling (boto3, Click automation) in a DevOps/SRE context. Solid professional usage.\n\n4. **resume_priya_sharma.docx** — 4 matches  \n   - Extensive Python experience in data science and ML. Uses pandas, scikit-learn, XGBoost, PyTorch for forecasting, reporting, and analytics.\n\n5. **resume_rahul_mehta.pdf** — 7 matches  \n   - Hands-on Python from an internship (Flask dashboard), teaching assistant work, and personal projects. Also holds a PCEP certification.\n\n6. **resume_sara_lindqvist.txt** — 5 matches  \n   - Focused Python ML/NLP engineering with PyTorch, Hugging Face, and open-source Python libraries. Four years of professional Python.\n\n---\n\n**Not found:**  \n- **resume_david_okafor.docx** — no Python mentions.\n\n**Passing mention only:**  \n- **resume_emily_watson.docx** — mentions completing an \"introductory Python course (2024)\" for prototyping; not a core skill.\n\n---\n\nThat covers all 8 resumes. Six resumes mention Python to varying depths, from deep professional experience to basic/introductory exposure.",
+      "iterations": 3,
+      "elapsed_seconds": 10.4,
+      "attempt": 1,
+      "accepted": true
+    },
+    {
+      "id": "summary",
+      "label": "Create a summary file",
+      "query": "Create a summary file for resume_john_doe.pdf",
+      "events": [
+        {
+          "type": "tool_call",
+          "t": 2.97,
+          "name": "list_files",
+          "args": {
+            "directory": "resumes"
+          },
+          "args_text": "directory='resumes'"
+        },
+        {
+          "type": "tool_result",
+          "t": 2.97,
+          "name": "list_files",
+          "ok": true,
+          "summary": "8 file(s): resume_alex_chen.txt, resume_david_okafor.docx, resume_emily_watson.docx, resume_john_doe.pdf, resume_maria_garcia.pdf, resume_priya_sharma.docx, +2 more",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 2.97,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_john_doe.pdf"
+          },
+          "args_text": "filepath='resumes/resume_john_doe.pdf'"
+        },
+        {
+          "type": "tool_result",
+          "t": 2.97,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_john_doe.pdf - 203 words (pdf)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 9.33,
+          "name": "write_file",
+          "args": {
+            "content": "# John Doe – Resume Summary\n\n**Role:** Senior Backend Engineer  \n**Location:** Austin, TX  \n**Contact:** john.doe@example.com | +1 (555) 010-0142 | github.com/example-jdoe  \n\n## Professional Snapshot\nBackend engineer with **8 years of professional Python experience** specializing in high-throughput REST and event-driven services. Strong track record leading migrations from monoliths to microservices and optimizing latency and throughput.\n\n## Key Achievements\n- Led a team of five in migrating a Django monolith to FastAPI microservices on AWS, reducing **p95 latency by 60%**.\n- Designed microservices handling **4,000 requests/second**.\n- Introduced Celery + Redis task queues, cutting batch-processing time from **6 hours to 40 minutes**.\n- Executed a **zero-downtime migration** of 80 million rows between PostgreSQL clusters.\n- Established pytest coverage standards reaching **92% coverage** and mentored 5 engineers.\n\n## Experience\n- **Senior Backend Engineer** – Northwind Logistics (2021 – Present)\n- **Backend Engineer** – Brightpath Software (2018 – 2021)\n- **Software Developer** – Cobalt Systems (2016 – 2018)\n\n## Education\n- **B.S. Computer Science**, University of Texas at Austin (2016)\n\n## Skills\n- **Languages:** Python, SQL, Bash, some JavaScript\n- **Frameworks:** FastAPI, Django, Flask, Celery, SQLAlchemy\n- **Cloud & DevOps:** AWS (EC2, RDS, SQS, Lambda), Docker, Terraform, GitHub Actions\n- **Databases:** PostgreSQL, Redis, DynamoDB\n\n## Certifications\n- AWS Certified Solutions Architect – Associate (2022)\n",
+            "filepath": "output/resume_john_doe_summary.md"
+          },
+          "args_text": "content='# John Doe – Resume Summary\\n\\n**Role:** Senior Backend Engine... (1533 chars)', filepath='output/resume_john_doe_summary.md'"
+        },
+        {
+          "type": "tool_result",
+          "t": 9.34,
+          "name": "write_file",
+          "ok": true,
+          "summary": "created output/resume_john_doe_summary.md (1,549 bytes)",
+          "error_type": null
+        }
+      ],
+      "answer": "Created a summary for **John Doe** and saved it to:\n\n**`output/resume_john_doe_summary.md`** (1,549 bytes)\n\nThe summary includes:\n- Contact info & location\n- A professional snapshot highlighting his 8 years of Python experience\n- Key achievements (latency reduction, throughput metrics, zero-downtime migrations)\n- Work history\n- Education, skills, and AWS certification",
+      "iterations": 3,
+      "elapsed_seconds": 12.0,
+      "attempt": 1,
+      "accepted": true,
+      "written_file": {
+        "path": "output/resume_john_doe_summary.md",
+        "content": "# John Doe – Resume Summary\n\n**Role:** Senior Backend Engineer  \n**Location:** Austin, TX  \n**Contact:** john.doe@example.com | +1 (555) 010-0142 | github.com/example-jdoe  \n\n## Professional Snapshot\nBackend engineer with **8 years of professional Python experience** specializing in high-throughput REST and event-driven services. Strong track record leading migrations from monoliths to microservices and optimizing latency and throughput.\n\n## Key Achievements\n- Led a team of five in migrating a Django monolith to FastAPI microservices on AWS, reducing **p95 latency by 60%**.\n- Designed microservices handling **4,000 requests/second**.\n- Introduced Celery + Redis task queues, cutting batch-processing time from **6 hours to 40 minutes**.\n- Executed a **zero-downtime migration** of 80 million rows between PostgreSQL clusters.\n- Established pytest coverage standards reaching **92% coverage** and mentored 5 engineers.\n\n## Experience\n- **Senior Backend Engineer** – Northwind Logistics (2021 – Present)\n- **Backend Engineer** – Brightpath Software (2018 – 2021)\n- **Software Developer** – Cobalt Systems (2016 – 2018)\n\n## Education\n- **B.S. Computer Science**, University of Texas at Austin (2016)\n\n## Skills\n- **Languages:** Python, SQL, Bash, some JavaScript\n- **Frameworks:** FastAPI, Django, Flask, Celery, SQLAlchemy\n- **Cloud & DevOps:** AWS (EC2, RDS, SQS, Lambda), Docker, Terraform, GitHub Actions\n- **Databases:** PostgreSQL, Redis, DynamoDB\n\n## Certifications\n- AWS Certified Solutions Architect – Associate (2022)\n"
+      }
+    },
+    {
+      "id": "summary-again",
+      "label": "Overwrite protection",
+      "query": "Create a summary file for resume_john_doe.pdf",
+      "events": [
+        {
+          "type": "tool_call",
+          "t": 1.99,
+          "name": "list_files",
+          "args": {
+            "directory": "resumes"
+          },
+          "args_text": "directory='resumes'"
+        },
+        {
+          "type": "tool_result",
+          "t": 1.99,
+          "name": "list_files",
+          "ok": true,
+          "summary": "8 file(s): resume_alex_chen.txt, resume_david_okafor.docx, resume_emily_watson.docx, resume_john_doe.pdf, resume_maria_garcia.pdf, resume_priya_sharma.docx, +2 more",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 3.8,
+          "name": "read_file",
+          "args": {
+            "filepath": "resumes/resume_john_doe.pdf"
+          },
+          "args_text": "filepath='resumes/resume_john_doe.pdf'"
+        },
+        {
+          "type": "tool_result",
+          "t": 3.94,
+          "name": "read_file",
+          "ok": true,
+          "summary": "resumes/resume_john_doe.pdf - 203 words (pdf)",
+          "error_type": null
+        },
+        {
+          "type": "tool_call",
+          "t": 11.18,
+          "name": "write_file",
+          "args": {
+            "filepath": "output/resume_john_doe_summary.md",
+            "content": "# John Doe – Resume Summary\n\n**Title:** Senior Backend Engineer  \n**Contact:** john.doe@example.com | +1 (555) 010-0142 | Austin, TX | github.com/example-jdoe\n\n## Professional Summary\nBackend engineer with 8 years of Python experience building high-throughput REST and event-driven services. Led a team of five migrating a Django monolith to FastAPI microservices on AWS, cutting p95 latency by 60%.\n\n## Experience\n\n**Senior Backend Engineer – Northwind Logistics** (2021 – Present)\n- Designed Python (FastAPI, SQLAlchemy) microservices handling 4,000 requests/second.\n- Introduced Celery + Redis task queues, reducing batch-processing time from 6 hours to 40 minutes.\n- Mentored 5 engineers; established code-review and pytest coverage standards (92% coverage).\n\n**Backend Engineer – Brightpath Software** (2018 – 2021)\n- Built Django REST Framework APIs for a SaaS billing platform serving 12,000 customers.\n- Wrote Python data-migration scripts that moved 80M rows between PostgreSQL clusters with zero downtime.\n\n**Software Developer – Cobalt Systems** (2016 – 2018)\n- Maintained internal Python tooling and Flask services; automated deployments with Fabric.\n\n## Education\n**B.S. Computer Science** – University of Texas at Austin, 2016\n\n## Skills\n- **Languages:** Python, SQL, Bash, some JavaScript\n- **Frameworks:** FastAPI, Django, Flask, Celery, SQLAlchemy\n- **Cloud & DevOps:** AWS (EC2, RDS, SQS, Lambda), Docker, Terraform, GitHub Actions\n- **Databases:** PostgreSQL, Redis, DynamoDB\n\n## Certifications\n- AWS Certified Solutions Architect – Associate (2022)\n"
+          },
+          "args_text": "filepath='output/resume_john_doe_summary.md', content='# John Doe – Resume Summary\\n\\n**Title:** Senior Backend Engin... (1569 chars)'"
+        },
+        {
+          "type": "tool_result",
+          "t": 11.18,
+          "name": "write_file",
+          "ok": false,
+          "summary": "file_exists: 'output/resume_john_doe_summary.md' already exists. Pass overwrite=true to replace it, or choose a different filename.",
+          "error_type": "file_exists"
+        },
+        {
+          "type": "tool_call",
+          "t": 14.92,
+          "name": "write_file",
+          "args": {
+            "filepath": "output/resume_john_doe_summary_v1.md",
+            "content": "# John Doe – Resume Summary\n\n**Title:** Senior Backend Engineer  \n**Contact:** john.doe@example.com | +1 (555) 010-0142 | Austin, TX | github.com/example-jdoe\n\n## Professional Summary\nBackend engineer with 8 years of Python experience building high-throughput REST and event-driven services. Led a team of five migrating a Django monolith to FastAPI microservices on AWS, cutting p95 latency by 60%.\n\n## Experience\n\n**Senior Backend Engineer – Northwind Logistics** (2021 – Present)\n- Designed Python (FastAPI, SQLAlchemy) microservices handling 4,000 requests/second.\n- Introduced Celery + Redis task queues, reducing batch-processing time from 6 hours to 40 minutes.\n- Mentored 5 engineers; established code-review and pytest coverage standards (92% coverage).\n\n**Backend Engineer – Brightpath Software** (2018 – 2021)\n- Built Django REST Framework APIs for a SaaS billing platform serving 12,000 customers.\n- Wrote Python data-migration scripts that moved 80M rows between PostgreSQL clusters with zero downtime.\n\n**Software Developer – Cobalt Systems** (2016 – 2018)\n- Maintained internal Python tooling and Flask services; automated deployments with Fabric.\n\n## Education\n**B.S. Computer Science** – University of Texas at Austin, 2016\n\n## Skills\n- **Languages:** Python, SQL, Bash, some JavaScript\n- **Frameworks:** FastAPI, Django, Flask, Celery, SQLAlchemy\n- **Cloud & DevOps:** AWS (EC2, RDS, SQS, Lambda), Docker, Terraform, GitHub Actions\n- **Databases:** PostgreSQL, Redis, DynamoDB\n\n## Certifications\n- AWS Certified Solutions Architect – Associate (2022)\n"
+          },
+          "args_text": "filepath='output/resume_john_doe_summary_v1.md', content='# John Doe – Resume Summary\\n\\n**Title:** Senior Backend Engin... (1569 chars)'"
+        },
+        {
+          "type": "tool_result",
+          "t": 14.93,
+          "name": "write_file",
+          "ok": true,
+          "summary": "created output/resume_john_doe_summary_v1.md (1,587 bytes)",
+          "error_type": null
+        }
+      ],
+      "answer": "Done. I read **resumes/resume_john_doe.pdf** and created a structured Markdown summary at:\n\n**`output/resume_john_doe_summary_v1.md`** (I used `_v1` because a file named `resume_john_doe_summary.md` already existed in `output/`.)",
+      "iterations": 5,
+      "elapsed_seconds": 17.1,
+      "attempt": 1,
+      "accepted": true
+    },
+    {
+      "id": "sandbox",
+      "label": "Sandbox",
+      "query": "This is a sandbox security test. Call read_file with filepath ../../secrets.txt and report exactly what the tool returns.",
+      "events": [
+        {
+          "type": "tool_call",
+          "t": 3.36,
+          "name": "read_file",
+          "args": {
+            "filepath": "../../secrets.txt"
+          },
+          "args_text": "filepath='../../secrets.txt'"
+        },
+        {
+          "type": "tool_result",
+          "t": 3.36,
+          "name": "read_file",
+          "ok": false,
+          "summary": "outside_sandbox: Access denied: '../../secrets.txt' is outside the allowed directory. Use a path relative to the project root, e.g. 'resumes/resume_john_doe.pdf'.",
+          "error_type": "outside_sandbox"
+        }
+      ],
+      "answer": "The tool returned:\n\n```\n{\"success\": false, \"error\": {\"type\": \"outside_sandbox\", \"message\": \"Access denied: '../../secrets.txt' is outside the allowed directory. Use a path relative to the project root, e.g. 'resumes/resume_john_doe.pdf'.\"}}\n```",
+      "iterations": 2,
+      "elapsed_seconds": 5.0,
+      "attempt": 1,
+      "accepted": true
+    }
+  ]
+}
